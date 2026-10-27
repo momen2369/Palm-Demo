@@ -1,0 +1,64 @@
+name: Playwright Tests (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      project:
+        description: Test project to run
+        type: choice
+        required: true
+        default: all
+        options:
+          - all
+          - chromium
+          - firefox
+          - webkit
+          - api
+
+permissions:
+  contents: read
+
+concurrency:
+  group: playwright-manual-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    env:
+      PST_BASE_URL: ${{ secrets.PST_BASE_URL }}
+      PST_ADMIN_EMAIL: ${{ secrets.PST_ADMIN_EMAIL }}
+      PST_ADMIN_PASSWORD: ${{ secrets.PST_ADMIN_PASSWORD }}
+      PLAYWRIGHT_HTML_OPEN: never
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run all Playwright tests
+        if: ${{ inputs.project == 'all' }}
+        run: npx playwright test
+
+      - name: Run selected Playwright project
+        if: ${{ inputs.project != 'all' }}
+        run: npx playwright test --project="${{ inputs.project }}"
+
+      - name: Upload Playwright report and results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 30
