@@ -7,18 +7,17 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: playwright-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    outputs:
+      report_exists: ${{ steps.report-check.outputs.exists }}
     env:
       PST_BASE_URL: ${{ secrets.PST_BASE_URL }}
       PST_ADMIN_EMAIL: ${{ secrets.PST_ADMIN_EMAIL }}
       PST_ADMIN_PASSWORD: ${{ secrets.PST_ADMIN_PASSWORD }}
+      PST_API_BASE_URL: ${{ secrets.PST_API_BASE_URL }}
       PLAYWRIGHT_HTML_OPEN: never
     steps:
       - uses: actions/checkout@v4
@@ -37,12 +36,74 @@ jobs:
       - name: Run all Playwright tests
         run: npx playwright test
 
-      - name: Upload Playwright report and results
-        if: ${{ !cancelled() }}
+      - name: Check for HTML report
+        id: report-check
+        if: ${{ always() }}
+        run: |
+          if [[ -f playwright-report/index.html ]]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload Playwright HTML report
+        if: ${{ always() && steps.report-check.outputs.exists == 'true' }}
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-results
-          path: |
-            playwright-report/
-            test-results/
+          name: playwright-report
+          path: playwright-report/
           retention-days: 30
+
+      - name: Upload Playwright test results
+        if: ${{ !cancelled() && hashFiles('test-results/**') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: test-results/
+          retention-days: 30
+
+      - name: Add pull request report link
+        if: ${{ always() && github.event_name == 'pull_request' && steps.report-check.outputs.exists == 'true' }}
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts
+        run: |
+          echo "The HTML report is available as a downloadable workflow artifact: [Download report artifact]($RUN_URL)." >> "$GITHUB_STEP_SUMMARY"
+
+  publish-report:
+    if: ${{ always() && needs.test.outputs.report_exists == 'true' && github.event_name == 'push' }}
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: playwright-pages-${{ github.repository }}
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Download Playwright HTML report
+        uses: actions/download-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report
+
+      - name: Upload report site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: playwright-report
+
+      - name: Deploy report site
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Add direct report link
+        env:
+          REPORT_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          echo "## Playwright HTML report" >> "$GITHUB_STEP_SUMMARY"
+          echo "[Open the report]($REPORT_URL)" >> "$GITHUB_STEP_SUMMARY"
