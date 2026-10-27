@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  pages: read
 
 jobs:
   test:
@@ -13,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       report_exists: ${{ steps.report-check.outputs.exists }}
+      pages_enabled: ${{ steps.pages-check.outputs.enabled }}
     env:
       PST_BASE_URL: ${{ secrets.PST_BASE_URL }}
       PST_ADMIN_EMAIL: ${{ secrets.PST_ADMIN_EMAIL }}
@@ -46,6 +48,23 @@ jobs:
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Check whether GitHub Pages is enabled
+        id: pages-check
+        if: ${{ always() && steps.report-check.outputs.exists == 'true' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              await github.rest.repos.getPages({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+              });
+              core.setOutput('enabled', 'true');
+            } catch (error) {
+              if (error.status !== 404) throw error;
+              core.setOutput('enabled', 'false');
+            }
+
       - name: Upload Playwright HTML report
         if: ${{ always() && steps.report-check.outputs.exists == 'true' }}
         uses: actions/upload-artifact@v4
@@ -69,8 +88,19 @@ jobs:
         run: |
           echo "The HTML report is available as a downloadable workflow artifact: [Download report artifact]($RUN_URL)." >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Explain Pages setup
+        if: ${{ always() && github.event_name == 'push' && steps.report-check.outputs.exists == 'true' && steps.pages-check.outputs.enabled == 'false' }}
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts
+        run: |
+          {
+            echo "## GitHub Pages is not enabled"
+            echo "The report is available as a downloadable artifact: [Download report artifact]($RUN_URL)."
+            echo "To publish a directly viewable report link on future runs, go to **Settings → Pages** and set the build and deployment source to **GitHub Actions**."
+          } >> "$GITHUB_STEP_SUMMARY"
+
   publish-report:
-    if: ${{ always() && needs.test.outputs.report_exists == 'true' && github.event_name == 'push' }}
+    if: ${{ always() && needs.test.outputs.report_exists == 'true' && needs.test.outputs.pages_enabled == 'true' && github.event_name == 'push' }}
     needs: test
     runs-on: ubuntu-latest
     permissions:
