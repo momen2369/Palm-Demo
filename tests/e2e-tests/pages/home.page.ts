@@ -4,7 +4,7 @@ export class HomePage {
   constructor(private readonly page: Page) {}
 
   async openProduct(productName: string): Promise<void> {
-    await this.page.goto('/');
+    await this.page.getByRole('link', { name: 'Home', exact: true }).click();
 
     const productLink = this.page.getByRole('link', { name: productName, exact: false }).first();
     const securityChallenge = this.page.getByRole('heading', {
