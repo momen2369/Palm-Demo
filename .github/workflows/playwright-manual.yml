@@ -47,8 +47,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Cache Playwright browsers
+        if: ${{ inputs.project != 'api' }}
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}-${{ inputs.project }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}-
+
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+        if: ${{ inputs.project != 'api' }}
+        timeout-minutes: 15
+        run: |
+          if [[ "${{ inputs.project }}" == "all" ]]; then
+            npx playwright install --with-deps chromium firefox webkit
+          else
+            npx playwright install --with-deps "${{ inputs.project }}"
+          fi
 
       - name: Run all Playwright tests
         if: ${{ inputs.project == 'all' }}
