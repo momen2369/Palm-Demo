@@ -59,6 +59,7 @@ Browser binaries are cached between workflow runs. The first automatic run insta
 The workflow log uses Playwright's list reporter to show each test name and status, alongside the HTML report.
 Failed CI tests retain Playwright traces, which can be opened from the failed test entry in the HTML report. Successful tests discard their traces to keep report artifacts small.
 If CI receives a security-verification page instead of the storefront, the site owner must allow the runner or provide an approved test environment; increasing the locator timeout will not resolve that block.
+The checkout E2E test may currently fail in the Chromium project on GitHub Actions because the storefront's security service presents a verification challenge to the CI browser. This is an environment-side block, not a Chromium locator issue; Firefox and WebKit may still pass.
 
 ### Manual workflow
 
@@ -66,19 +67,6 @@ If CI receives a security-verification page instead of the storefront, the site 
 
 Manual runs install only the selected browser; selecting `api` skips browser installation entirely.
 
-### Configure repository secrets
-
-Add these under **Settings → Secrets and variables → Actions → New repository secret**:
-
-| Secret | Value |
-|---|---|
-| `PST_BASE_URL` | Storefront base URL, e.g. `https://practicesoftwaretesting.com/` |
-| `PST_ADMIN_EMAIL` | Test account email |
-| `PST_ADMIN_PASSWORD` | Test account password |
-| `PST_API_BASE_URL` | API base URL;
-
-
-
 ### View workflow reports
 
-Both workflows upload a downloadable `playwright-report` artifact, available from the workflow run’s **Artifacts** section. For a directly viewable report link, enable GitHub Pages under **Settings → Pages** and select **GitHub Actions** as the build and deployment source. When Pages is enabled, the workflow deploys the report and adds a run-specific, cache-busted link to the run summary. Each deployment replaces the Pages site with the latest report; use that run’s artifact for older reports. Without Pages, the summary explains how to enable it and points to the downloadable artifact.
+Each workflow run provides a run-specific link to the directly viewable report in its summary. The `playwright-report` artifact is also available from the run’s **Artifacts** section; each Pages deployment replaces the previous report, so use the artifact to access older reports.
