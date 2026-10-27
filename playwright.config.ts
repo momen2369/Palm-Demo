@@ -34,8 +34,8 @@ export default defineConfig({
     baseURL,
     testIdAttribute: 'data-test',
 
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: process.env.CI ? 'off' : 'on',
+    /* Keep traces for failed tests so they are available from the HTML report. */
+    trace: process.env.CI ? 'retain-on-failure' : 'on',
   },
 
   /* Configure projects for major browsers */
