@@ -64,6 +64,11 @@ Browser binaries are cached between runs. The first run installs Chromium, Firef
 > The checkout E2E test may currently fail in the Chromium project on GitHub Actions because the storefront’s security service presents a verification challenge to the CI browser. This is an environment-side block, not a Chromium locator issue; Firefox and WebKit may still pass.
 >
 > Increasing the locator timeout will not resolve this block. The site owner must allow the runner or provide an approved test environment.
+> 
+> However all tests are passing locally.
+> 
+>  <img width="440" height="117" alt="image" src="https://github.com/user-attachments/assets/a56b26ae-97b5-4311-bf8c-82e22a60035a" />
+
 
 ### Manual runs
 
