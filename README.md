@@ -57,6 +57,7 @@ The checkout test completes a demo order. The API-created-product test creates a
 
 Browser binaries are cached between workflow runs. The first automatic run installs Chromium, Firefox, and WebKit; subsequent runs can reuse the cached browsers.
 The workflow log uses Playwright's list reporter to show each test name and status, alongside the HTML report.
+If CI receives a security-verification page instead of the storefront, the site owner must allow the runner or provide an approved test environment; increasing the locator timeout will not resolve that block.
 
 ### Manual workflow
 
