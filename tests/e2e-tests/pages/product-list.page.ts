@@ -10,8 +10,6 @@ export class ProductListPage {
   }
 
   async expectProductVisible(productName: string): Promise<void> {
-    await this.page.getByRole('textbox', { name: 'Search' }).fill(productName);
-    await this.page.getByRole('button', { name: 'Search' }).click();
     await expect(
       this.page.getByRole('heading', { name: productName, exact: true }),
     ).toBeVisible();
