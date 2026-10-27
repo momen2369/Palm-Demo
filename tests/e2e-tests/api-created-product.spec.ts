@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
-import type { LoginResponse, Product, ProductRequest } from '../api-tests/models/api-responses';
+import type {
+  LoginResponse,
+  Product,
+  ProductRequest,
+  ProductsResponse,
+} from '../api-tests/models/api-responses';
 import { CommonApiSteps } from '../api-tests/steps/common.steps';
 import { productFixture } from './fixtures/product.fixture';
 import { ProductListPage } from './pages/product-list.page';
@@ -20,11 +25,29 @@ test('creates a product with the API and finds it in the A-Z product list', asyn
   expect(loginResponse.status()).toBe(200);
   const login = (await loginResponse.json()) as LoginResponse;
 
+  const productsResponse = await apiSteps.getProducts(login.token_type, login.access_token);
+  expect(productsResponse.status()).toBe(200);
+  const products = (await productsResponse.json()) as ProductsResponse;
+  const referenceProduct = products.data.find(
+    (product) =>
+      product.category?.id && product.brand?.id && product.product_image?.id,
+  );
+  if (!referenceProduct) {
+    throw new Error('The product catalog has no item with category, brand, and image references.');
+  }
+  const { category, brand, product_image: productImage } = referenceProduct;
+  if (!category?.id || !brand?.id || !productImage?.id) {
+    throw new Error('The selected catalog item is missing a category, brand, or image reference.');
+  }
+
   const timestamp = Date.now();
   const productName = `A E2E Product ${testInfo.project.name} ${timestamp}`;
   const productRequest: ProductRequest = {
     ...productFixture,
     name: productName,
+    category_id: category.id,
+    brand_id: brand.id,
+    product_image_id: productImage.id,
   };
 
   let createdProductId: string | undefined;
@@ -35,12 +58,16 @@ test('creates a product with the API and finds it in the A-Z product list', asyn
       login.token_type,
       login.access_token,
     );
-    const createdProduct = (await createResponse.json()) as Product;
+    const createResponseBody = await createResponse.text();
+    expect(
+      createResponse.status(),
+      `Product creation response: ${createResponseBody}`,
+    ).toBe(201);
+    const createdProduct = JSON.parse(createResponseBody) as Product;
     if (typeof createdProduct.id === 'string') {
       createdProductId = createdProduct.id;
     }
 
-    expect(createResponse.status()).toBe(201);
     expect(createdProduct.name).toBe(productName);
     expect(createdProduct.id).toEqual(expect.any(String));
 
