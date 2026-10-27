@@ -81,4 +81,4 @@ Add these under **Settings → Secrets and variables → Actions → New reposit
 
 ### View workflow reports
 
-Both workflows upload a downloadable `playwright-report` artifact, available from the workflow run’s **Artifacts** section. For a directly viewable report link, enable GitHub Pages under **Settings → Pages** and select **GitHub Actions** as the build and deployment source. When Pages is enabled, the workflow deploys the report and adds its link to the run summary. Without Pages, the summary explains how to enable it and points to the downloadable artifact.
+Both workflows upload a downloadable `playwright-report` artifact, available from the workflow run’s **Artifacts** section. For a directly viewable report link, enable GitHub Pages under **Settings → Pages** and select **GitHub Actions** as the build and deployment source. When Pages is enabled, the workflow deploys the report and adds a run-specific, cache-busted link to the run summary. Each deployment replaces the Pages site with the latest report; use that run’s artifact for older reports. Without Pages, the summary explains how to enable it and points to the downloadable artifact.

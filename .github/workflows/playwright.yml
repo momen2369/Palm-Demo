@@ -142,7 +142,7 @@ jobs:
 
       - name: Add direct report link
         env:
-          REPORT_URL: ${{ steps.deployment.outputs.page_url }}
+          REPORT_URL: ${{ steps.deployment.outputs.page_url }}?run=${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           echo "## Playwright HTML report" >> "$GITHUB_STEP_SUMMARY"
           echo "[Open the report]($REPORT_URL)" >> "$GITHUB_STEP_SUMMARY"
